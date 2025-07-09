@@ -1,10 +1,14 @@
 import { Router, Request, Response } from 'express';
+import { Book } from '../Book' ;
+import { Catalogue } from '../Catalogue';
+import { User } from '../User';
 
 class BookController {
     router: Router;
 
     constructor() {
         this.router = Router();
+        this.router.get('/catalogue', this.getCatalogue.bind(this));
         this.router.get('/:id', this.getBook.bind(this));
 
         this.router.post('/', this.createBook.bind(this));
@@ -58,11 +62,40 @@ class BookController {
     }
 
     getBook(req: Request, res: Response) {
-        // TODO: implement functionality
-        return res.status(500).json({
-            error: 'server_error',
-            error_description: 'Endpoint not implemented yet.',
-        });
+        try {
+            let result = Book.parseBookList("select * from Bookish.dbo.BOOK");
+            return res.json({ success: true, data: result });
+        } catch {
+            return res.status(500).json({
+                error: 'server_error',
+                error_description: 'Endpoint not implemented yet.',
+            });
+        }
+    }
+
+    getCatalogue(req: Request, res: Response) {
+        try {
+            let result = Catalogue.parseCatalogueList("select * from Bookish.dbo.V_CATALOGUE ORDER BY title ASC");
+            console.log('I', result, 'I\'ll quit');
+            return res.json({ success: true, data: result });
+        } catch {
+            return res.status(500).json({
+                error: 'error',
+                error_description: 'Oopsie happened.',
+            });
+        }
+    }
+
+    getUser(req: Request, res: Response) {
+        try {
+            let result = User.parseUserList("select * from Bookish.dbo.BOOK");
+            return res.json({ success: true, data: result });
+        } catch {
+            return res.status(500).json({
+                error: 'server_error',
+                error_description: 'Endpoint not implemented yet.',
+            });
+        }
     }
 
     createBook(req: Request, res: Response) {

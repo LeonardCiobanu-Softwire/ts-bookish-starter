@@ -16,8 +16,7 @@ app.listen(port, () => {
 /**
  * Primary app routes.
  */
-app.use('/healthcheck', healthcheckRoutes);
-app.use('/books', bookRoutes);
+
 
 const config = {
     server: 'localhost',
@@ -33,12 +32,11 @@ const config = {
     },
 };
 
-async function your_function(){
-  var id = 'id you want or user inputs';
+export async function getFromDB(sqlQuery: string){
   const allData = [];
   // We now set the promise awaiting it gets results
   await new Promise((resolve,reject) => {
-      const request = new Request("select * from Bookish.dbo.All_BOOKS", function(err, rowCount) {
+      const request = new Request(sqlQuery, function(err, rowCount) {
             if (err) {
                 return reject(err);
             }
@@ -61,34 +59,7 @@ async function your_function(){
     return allData;  // Now You can assign it or use the same object as well
 }
 
-
-
-
-const executeSQL = (sql, callback) => {
-  let rowMetadata: string[] = [];
-  let connection = new Connection({
-    server: 'localhost',
-    options: {
-        trustServerCertificate: true
-    },
-    authentication: {
-        type: 'default',
-        options: {
-            userName: 'Leonard',
-            password: '536635',
-            rowCollectionOnDone: true,
-            rowCollectionOnRequestCompletion: true
-        },
-    },
-});
-
-};
-
-
 const Connection = require('tedious').Connection;
-
-
-
 const connection = new Connection(config);
 
 connection.on('connect', function(err) {
@@ -101,19 +72,15 @@ connection.on('connect', function(err) {
 
 connection.connect();
 
-
 let Request = require('tedious').Request;
-
-
-
-
 let allBooks: Book[] = [];
 
-
+app.use('/healthcheck', healthcheckRoutes);
+app.use('/books', bookRoutes);
 
 app.get('/', async (req, res) => {
     try {
-      const result = await your_function();
+      const result = await getFromDB("select * from Bookish.dbo.All_BOOKS");
       allBooks = Book.parseResultToBookList(result);
       // console.log(result);
       res.json({ success: true, data: allBooks });

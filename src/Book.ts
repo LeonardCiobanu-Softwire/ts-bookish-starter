@@ -1,7 +1,9 @@
+import { getFromDB } from "./app";
 export class Book {
   bookID: number;
   title: string;
   ISBN: string;
+  
   set(field: string, value: string) {
     if (field === 'bookID') {
       this.bookID = Number(value);
@@ -12,21 +14,36 @@ export class Book {
     }
   }
 
-  static parseResultToBookList(res):Book[] {
-  let allBooks: Book[] = [];
-  let b: Book;
-  res.forEach(
-    col => {
-      if (String(col.metadata.colName) == 'bookID') {
-        if (b != undefined)
-          allBooks.push(b);
-        b = new Book();
+  static parseResultToBookList(res): Book[] {
+    let allBooks: Book[] = [];
+    let b: Book;
+    res.forEach(
+      col => {
+        if (String(col.metadata.colName) == 'bookID') {
+          if (b != undefined)
+            allBooks.push(b);
+          b = new Book();
+        }
+        b.set(String(col.metadata.colName), String(col.value));
       }
-      b.set(String(col.metadata.colName), String(col.value));
-    }
-  )
-  // console.log(allBooks);
-  return allBooks;
-}
+    )
+    // console.log(allBooks);
+    return allBooks;
+  }
 
+  static async getResult(sqlQuery: string) {
+    try {
+    const result = await getFromDB(sqlQuery);
+    return result;
+    } catch {
+      console.log("oops");
+      return [];
+    }
+  }
+
+  static async parseBookList(sqlQuery: string) {
+    const result = await this.getResult(sqlQuery);
+    let res = Book.parseResultToBookList(result);
+    return res;
+  }  
 }
