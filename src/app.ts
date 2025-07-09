@@ -38,19 +38,24 @@ const config = {
 
 const connection = new Connection(config);
 
+let allBooks: string[] = [];
+let allInfoBooks: string[] = [];
+
 connection.on('connect', function (err: Error) {
     if (err) {
         console.log(err);
     }
-    executeStatement();
+    selectAllInfoBooks();
+    // selectAllBooks();
+    // selectAuthors();
 });
 
 connection.connect();
 
 
 
-var Request = require('tedious').Request;
-function executeStatement() {
+let Request = require('tedious').Request;
+function selectAuthors() {
     let request = new Request("select * from Bookish.dbo.AUTHOR", function(err, rowCount) {
       if (err) {
         console.log(err);
@@ -60,14 +65,56 @@ function executeStatement() {
         connection.close()
       }
     });
-
     request.on('row', function(columns) {
-      columns.forEach(function(column) {
-        console.log(column.value);
+      columns.forEach(column => {
+        console.log(column.metadata.colName, ': ', column.value);
+        
       });
     });
 
     connection.execSql(request);
   }
 
-// connection.
+function selectAllBooks() {
+    let request = new Request("select * from Bookish.dbo.All_BOOKS", function(err, rowCount) {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log(rowCount + ' rows');
+        // and we close the connection
+        connection.close()
+      }
+    });
+    request.on('row', function(columns) {
+      columns.forEach(column => {
+        console.log(column.metadata.colName, ': ', column.value);
+        allBooks.push(column.metadata.colName + ': ' + column.value);
+      });
+    });
+
+    connection.execSql(request);
+  }
+
+function selectAllInfoBooks() {
+    let request = new Request("select * from Bookish.dbo.All_INFO_BOOKS", function(err, rowCount) {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log(rowCount + ' rows');
+        // and we close the connection
+        connection.close()
+      }
+    });
+    request.on('row', function(columns) {
+      columns.forEach(column => {
+        console.log(column.metadata.colName, ': ', column.value);
+        allInfoBooks.push(column.metadata.colName + ': ' + column.value);
+      });
+    });
+
+    connection.execSql(request);
+  }
+
+app.get('/', (req, res) => {
+    res.send(allInfoBooks)
+})
