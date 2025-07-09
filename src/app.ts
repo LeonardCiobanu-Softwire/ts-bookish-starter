@@ -1,8 +1,9 @@
 import express from 'express';
 import 'dotenv/config';
-
+import { Book } from './Book' ;
 import healthcheckRoutes from './controllers/healthcheckController';
 import bookRoutes from './controllers/bookController';
+import { constants } from 'perf_hooks';
 
 const port = process.env['PORT'] || 3000;
 
@@ -18,10 +19,6 @@ app.listen(port, () => {
 app.use('/healthcheck', healthcheckRoutes);
 app.use('/books', bookRoutes);
 
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Connection = require('tedious').Connection;
-
 const config = {
     server: 'localhost',
     options: {
@@ -36,85 +33,92 @@ const config = {
     },
 };
 
+async function your_function(){
+  var id = 'id you want or user inputs';
+  const allData = [];
+  // We now set the promise awaiting it gets results
+  await new Promise((resolve,reject) => {
+      const request = new Request("select * from Bookish.dbo.All_BOOKS", function(err, rowCount) {
+            if (err) {
+                return reject(err);
+            }
+        });
+        
+        request.on('row', function(columns) {
+            columns.forEach(function(column) {
+                allData.push(column); //Push the result to array
+            });
+        });
+
+        request.on('doneProc', function (rowCount, more, returnStatus, rows) {
+            return resolve(allData); //Here we resolve allData using promise in order to get it´s content later
+        });
+
+        connection.execSql(request);
+
+    });
+
+    return allData;  // Now You can assign it or use the same object as well
+}
+
+
+
+
+const executeSQL = (sql, callback) => {
+  let rowMetadata: string[] = [];
+  let connection = new Connection({
+    server: 'localhost',
+    options: {
+        trustServerCertificate: true
+    },
+    authentication: {
+        type: 'default',
+        options: {
+            userName: 'Leonard',
+            password: '536635',
+            rowCollectionOnDone: true,
+            rowCollectionOnRequestCompletion: true
+        },
+    },
+});
+
+};
+
+
+const Connection = require('tedious').Connection;
+
+
+
 const connection = new Connection(config);
 
-let allBooks: string[] = [];
-let allInfoBooks: string[] = [];
-
-connection.on('connect', function (err: Error) {
-    if (err) {
+connection.on('connect', function(err) {
+  if (err) {
         console.log(err);
+    }else{
+        console.log("Connected");  
     }
-    selectAllInfoBooks();
-    // selectAllBooks();
-    // selectAuthors();
-});
+})
 
 connection.connect();
 
 
-
 let Request = require('tedious').Request;
-function selectAuthors() {
-    let request = new Request("select * from Bookish.dbo.AUTHOR", function(err, rowCount) {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(rowCount + ' rows');
-        // and we close the connection
-        connection.close()
-      }
-    });
-    request.on('row', function(columns) {
-      columns.forEach(column => {
-        console.log(column.metadata.colName, ': ', column.value);
-        
-      });
-    });
 
-    connection.execSql(request);
-  }
 
-function selectAllBooks() {
-    let request = new Request("select * from Bookish.dbo.All_BOOKS", function(err, rowCount) {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(rowCount + ' rows');
-        // and we close the connection
-        connection.close()
-      }
-    });
-    request.on('row', function(columns) {
-      columns.forEach(column => {
-        console.log(column.metadata.colName, ': ', column.value);
-        allBooks.push(column.metadata.colName + ': ' + column.value);
-      });
-    });
 
-    connection.execSql(request);
-  }
 
-function selectAllInfoBooks() {
-    let request = new Request("select * from Bookish.dbo.All_INFO_BOOKS", function(err, rowCount) {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(rowCount + ' rows');
-        // and we close the connection
-        connection.close()
-      }
-    });
-    request.on('row', function(columns) {
-      columns.forEach(column => {
-        console.log(column.metadata.colName, ': ', column.value);
-        allInfoBooks.push(column.metadata.colName + ': ' + column.value);
-      });
-    });
+let allBooks: Book[] = [];
 
-    connection.execSql(request);
-  }
 
-app.get('/', (req, res) => {
-    res.send(allInfoBooks)
-})
+
+app.get('/', async (req, res) => {
+    try {
+      const result = await your_function();
+      allBooks = Book.parseResultToBookList(result);
+      // console.log(result);
+      res.json({ success: true, data: allBooks });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
